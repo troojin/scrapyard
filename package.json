@@ -1,15 +1,20 @@
 {
-  "name": "temp-app",
+  "name": "scrapyard",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "pb": ".\\pocketbase\\pocketbase.exe serve --http=127.0.0.1:8090",
+    "pb:setup": "node scripts/setup-db.mjs",
+    "pb:seed": "node scripts/seed-data.mjs"
   },
   "dependencies": {
+    "lucide-react": "^1.68.0",
     "next": "16.4.5",
+    "pocketbase": "^0.28.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"
   },

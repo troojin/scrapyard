@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Scrapyard
+
+Where developers post abandoned side projects so others can browse them, see why they stopped, and scavenge useful parts of the code.
+
+Built with **Next.js (App Router)**, **TypeScript**, **Tailwind CSS**, and **PocketBase**.
+
+---
+
+## Features
+
+- **Developer Postmortem Feed (`/`)**: Browse cataloged side projects with screenshots, author avatars, postmortem "Cause of Death" breakdowns, and pinpointed salvageable files or algorithms.
+- **Tag Filtering & Instant Search**: Filter by language/tag (Rust, TypeScript, Go, Algorithms, WebGL, Security) or search through project titles, reasons, and file paths.
+- **Interactive Postmortem Inspector**: Full modal dialog showcasing screenshots, author credentials, repo links, and one-click snippet copying for scavenged code.
+- **Deposit / Submit Workflow (`/submit`)**: Form for authenticated users with title, GitHub URL, drag-and-drop screenshot upload, reason stopped, and scavengeable parts. Features a live card preview.
+- **Developer Profile & Scraps Management (`/profile`)**: Manage your avatar, username, and view/delete your submitted projects.
+- **Authentication**: Email/username login and registration with avatar upload.
+- **PocketBase Integration + Offline Fallback**: Connects to PocketBase via `NEXT_PUBLIC_API_URL`. When PocketBase is offline or not yet initialized, the app seamlessly provides demo fallback mode and persists user submissions locally.
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### 1. Environment Variable
+
+Copy `.env.example` to `.env.local` (or customize the URL):
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8090
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Install & Run Next.js
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Visit [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## PocketBase Setup
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Option A: Quick PocketBase Executable
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Download PocketBase for your OS from [pocketbase.io](https://pocketbase.io/docs/).
+2. Run the executable in a terminal:
+   ```bash
+   ./pocketbase serve --http=127.0.0.1:8090
+   ```
+3. Open the admin UI at `http://127.0.0.1:8090/_/` and create your initial admin account.
 
-## Deploy on Vercel
+### Option B: Importing the Schema
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+A pre-configured schema definition is provided in `pocketbase-schema.json`:
+1. In the PocketBase Admin UI (`/_/`), go to **Settings** &rarr; **Import collections**.
+2. Paste the contents of `pocketbase-schema.json` and click **Review** &rarr; **Confirm**.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The `projects` collection schema includes:
+- `title` (text, required)
+- `github_url` (url, required)
+- `screenshot` (file, max 5MB, images)
+- `reason_abandoned` (text, required)
+- `salvageable_code` (text, required)
+- `tags` (json)
+- `user` (relation to `users` collection)
