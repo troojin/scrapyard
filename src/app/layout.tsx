@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Scrapyard — Where Abandoned Code Gets Scavenged',
+  title: 'Scrapyard',
   description:
     'A platform for developers to post abandoned side projects, explain why they stopped building, and share the salvageable parts of the code.',
 };

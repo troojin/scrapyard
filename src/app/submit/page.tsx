@@ -5,13 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { createProjectRecord } from '@/lib/projectsApi';
 import { AuthModal } from '@/components/AuthModal';
+import { Inter } from 'next/font/google';
 import {
   Upload,
   Image as ImageIcon,
   X,
   AlertCircle,
   CheckCircle2,
-  Lock,
   ArrowLeft,
   GitBranch,
   Code2,
@@ -21,9 +21,17 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
+
+const focusRing = 'focus:outline-none focus:shadow-[0_0_0_2px_rgba(250,250,250,0.3)]';
+const labelCls =
+  'flex items-center gap-1.5 text-[11px] font-medium text-[#8a8a8a] mb-2 uppercase tracking-[0.05em]';
+const fieldCls = `w-full bg-transparent border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg px-3.5 py-2.5 text-sm text-[#fafafa] placeholder:text-[#5c5c5c] transition-[border-color,box-shadow] duration-150 ${focusRing}`;
+const primaryBtn = `group w-full py-2.5 px-4 bg-[#fafafa] hover:bg-white text-[#080808] font-medium text-sm rounded-lg transition-[background-color,transform] duration-150 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60 disabled:active:scale-100 ${focusRing}`;
+
 export default function SubmitPage() {
   const router = useRouter();
-  const { user, loginAsDemoUser } = useAuth();
+  const { user } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [title, setTitle] = useState('');
@@ -127,40 +135,32 @@ export default function SubmitPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col justify-center items-center px-4 py-16">
-        <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg p-8 text-center">
-          <div className="w-12 h-12 rounded bg-amber-500/10 border border-amber-500/30 text-amber-500 flex items-center justify-center mx-auto mb-4">
-            <Lock className="w-6 h-6" />
-          </div>
-          <h1 className="text-xl font-bold tracking-tight text-zinc-100 mb-2">
-            Authentication Required
+      <div className={`${inter.className} min-h-screen bg-[#080808] text-[#fafafa] flex items-center justify-center px-4 py-16 antialiased`}>
+        <div className="w-full max-w-md bg-[#080808] rounded-xl p-8 text-center shadow-[inset_0_0_0_1px_#2a2a2a]">
+          <h1 className="text-2xl font-semibold tracking-[-0.025em] text-[#fafafa] mb-2">
+            Sign in to continue
           </h1>
-          <p className="text-xs text-zinc-400 font-sans mb-6 leading-relaxed">
-            Only registered developers can deposit abandoned projects into the Scrapyard. Sign in or
-            create a profile with your avatar to proceed.
+          <p className="text-sm text-[#8a8a8a] mb-6 leading-relaxed">
+            Only registered developers can deposit abandoned projects. Sign in or create an account to
+            proceed.
           </p>
 
-          <div className="space-y-3">
-            <button
-              type="button"
-              onClick={() => setIsAuthModalOpen(true)}
-              className="w-full py-2.5 px-4 bg-amber-600 hover:bg-amber-500 text-zinc-950 text-xs font-mono font-bold rounded transition-colors"
-            >
-              Sign In or Register
-            </button>
-            <button
-              type="button"
-              onClick={() => loginAsDemoUser()}
-              className="w-full py-2.5 px-4 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono rounded border border-zinc-700 transition-colors"
-            >
-              Quick Test: Sign in as Demo User
-            </button>
+          <div className="space-y-4">
+            <Link href="/register" className={primaryBtn}>
+              Create an account
+            </Link>
+            <p className="text-sm text-[#8a8a8a]">
+              Already have an account?{' '}
+              <Link href="/login" className="text-[#fafafa] hover:underline underline-offset-4">
+                Sign in
+              </Link>
+            </p>
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-mono text-zinc-500 hover:text-zinc-300 pt-2 transition-colors"
+              className="group inline-flex items-center gap-1.5 text-sm text-[#8a8a8a] hover:text-[#fafafa] transition-colors"
             >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Scrapyard Catalog</span>
+              <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+              <span>Back to catalog</span>
             </Link>
           </div>
         </div>
@@ -175,50 +175,48 @@ export default function SubmitPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 pb-20">
-      <div className="border-b border-zinc-800 bg-zinc-900/40">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-          <div className="flex items-center justify-between mb-4">
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 text-xs font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back to Catalog</span>
-            </Link>
+    <div className={`${inter.className} min-h-screen bg-[#080808] text-[#fafafa] pb-20 antialiased`}>
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 pb-6">
+        <div className="flex items-center justify-between mb-6">
+          <Link
+            href="/"
+            className="group inline-flex items-center gap-1.5 text-sm text-[#8a8a8a] hover:text-[#fafafa] transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+            <span>Back to catalog</span>
+          </Link>
 
-            <button
-              type="button"
-              onClick={() => setShowPreview(!showPreview)}
-              className="inline-flex items-center gap-1.5 text-xs font-mono px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 rounded border border-zinc-800 transition-colors"
-            >
-              {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-              <span>{showPreview ? 'Hide Live Preview' : 'Show Live Preview'}</span>
-            </button>
-          </div>
-
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-100">
-            Dump an Abandoned Project
-          </h1>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-1 max-w-xl font-sans">
-            Document what you built, why you walked away, and guide other developers to the code
-            worth reusing.
-          </p>
+          <button
+            type="button"
+            onClick={() => setShowPreview(!showPreview)}
+            className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-transparent hover:bg-[#141414] text-[#fafafa] rounded-lg border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors ${focusRing}`}
+          >
+            {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+            <span>{showPreview ? 'Hide live preview' : 'Show live preview'}</span>
+          </button>
         </div>
+
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-[-0.025em] text-[#fafafa]">
+          Dump an abandoned project
+        </h1>
+        <p className="text-sm text-[#8a8a8a] mt-2 max-w-xl">
+          Document what you built, why you walked away, and guide other developers to the code worth
+          reusing.
+        </p>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
         {error && (
-          <div className="mb-6 p-4 rounded bg-red-950/60 border border-red-800/80 text-red-200 text-xs flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+          <div className="mb-6 p-4 rounded-lg bg-[#ef4444]/10 shadow-[inset_0_0_0_1px_rgba(239,68,68,0.35)] text-[#fca5a5] text-xs flex items-start gap-2.5">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-px text-[#ef4444]" />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="mb-6 p-4 rounded bg-emerald-950/60 border border-emerald-800/80 text-emerald-200 text-xs flex items-start gap-2.5">
-            <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-400" />
-            <span>Project successfully submitted to the Scrapyard! Redirecting to feed...</span>
+          <div className="mb-6 p-4 rounded-lg bg-[#22c55e]/10 shadow-[inset_0_0_0_1px_rgba(34,197,94,0.35)] text-[#86efac] text-xs flex items-start gap-2.5">
+            <CheckCircle2 className="w-4 h-4 shrink-0 mt-px text-[#22c55e]" />
+            <span>Project submitted! Redirecting to the feed...</span>
           </div>
         )}
 
@@ -228,38 +226,38 @@ export default function SubmitPage() {
             className={`space-y-6 ${showPreview ? 'lg:col-span-7' : 'lg:col-span-12 max-w-2xl'}`}
           >
             <div>
-              <label className="block text-xs font-mono text-zinc-300 mb-2 uppercase tracking-wide">
-                Project Title <span className="text-red-400">*</span>
+              <label htmlFor="title" className={labelCls}>
+                <span>Project Title</span> <span className="text-[#ef4444]">*</span>
               </label>
               <input
+                id="title"
                 type="text"
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. GraphVector, SQLite Sync Engine, WebGL Shader Toy"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                className={fieldCls}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-zinc-300 mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                <GitBranch className="w-3.5 h-3.5 text-zinc-400" />
-                <span>GitHub Repository URL</span> <span className="text-red-400">*</span>
+              <label htmlFor="githubUrl" className={labelCls}>
+                <GitBranch className="w-3.5 h-3.5" />
+                <span>GitHub Repository URL</span> <span className="text-[#ef4444]">*</span>
               </label>
               <input
+                id="githubUrl"
                 type="url"
                 required
                 value={githubUrl}
                 onChange={(e) => setGithubUrl(e.target.value)}
                 placeholder="https://github.com/username/abandoned-repo"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono text-xs"
+                className={`${fieldCls} font-mono text-xs`}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-zinc-300 mb-2 uppercase tracking-wide">
-                Project Screenshot / Architecture Diagram
-              </label>
+              <span className={labelCls}>Project Screenshot / Architecture Diagram</span>
               <input
                 type="file"
                 ref={fileInputRef}
@@ -269,17 +267,13 @@ export default function SubmitPage() {
               />
 
               {screenshotPreview ? (
-                <div className="relative rounded-lg overflow-hidden border border-zinc-800 bg-zinc-950 aspect-video group">
-                  <img
-                    src={screenshotPreview}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                  />
+                <div className="relative rounded-lg overflow-hidden shadow-[inset_0_0_0_1px_#2a2a2a] bg-[#080808] aspect-video">
+                  <img src={screenshotPreview} alt="Preview" className="w-full h-full object-cover" />
                   <div className="absolute top-2 right-2">
                     <button
                       type="button"
                       onClick={removeScreenshot}
-                      className="p-1.5 bg-zinc-900/90 hover:bg-red-900/90 text-zinc-300 hover:text-white rounded border border-zinc-700 transition-colors"
+                      className={`p-1.5 bg-[#080808]/90 hover:bg-[#141414] text-[#b8b8b8] hover:text-[#fafafa] rounded-md border border-[#2a2a2a] transition-colors ${focusRing}`}
                       title="Remove image"
                     >
                       <X className="w-4 h-4" />
@@ -289,76 +283,73 @@ export default function SubmitPage() {
               ) : (
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border border-dashed border-zinc-800 hover:border-zinc-700 bg-zinc-900/40 rounded-lg p-6 text-center cursor-pointer transition-colors"
+                  className="border border-dashed border-[#2a2a2a] hover:border-[#3a3a3a] hover:bg-[#141414] rounded-lg p-6 text-center cursor-pointer transition-colors"
                 >
-                  <div className="w-10 h-10 rounded bg-zinc-800 text-zinc-400 flex items-center justify-center mx-auto mb-2">
+                  <div className="w-10 h-10 rounded-lg bg-[#141414] shadow-[inset_0_0_0_1px_#2a2a2a] text-[#8a8a8a] flex items-center justify-center mx-auto mb-3">
                     <ImageIcon className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-mono text-zinc-300 block mb-1">
-                    Click to upload screenshot or UI preview
+                  <span className="text-sm text-[#fafafa] block mb-1">
+                    Click to upload a screenshot or UI preview
                   </span>
-                  <span className="text-[11px] font-mono text-zinc-500 block">
-                    PNG, JPG, WebP up to 5MB
-                  </span>
+                  <span className="text-xs text-[#8a8a8a] block">PNG, JPG, WebP up to 5MB</span>
                 </div>
               )}
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-zinc-300 mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                <Skull className="w-3.5 h-3.5 text-red-400" />
-                <span>Why Did You Abandon It? (Cause of Death)</span> <span className="text-red-400">*</span>
+              <label htmlFor="reason" className={labelCls}>
+                <Skull className="w-3.5 h-3.5" />
+                <span>Why Did You Abandon It? (Cause of Death)</span>{' '}
+                <span className="text-[#ef4444]">*</span>
               </label>
               <textarea
+                id="reason"
                 required
                 rows={3}
                 value={reasonAbandoned}
                 onChange={(e) => setReasonAbandoned(e.target.value)}
                 placeholder="Be brutally honest: Did competitors ship first? Did AWS bills explode? Did Chrome MV3 break your background workers? Real postmortems help everyone."
-                className="w-full bg-zinc-900 border border-zinc-800 rounded px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 leading-relaxed font-sans"
+                className={`${fieldCls} leading-relaxed`}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-zinc-300 mb-2 uppercase tracking-wide flex items-center gap-1.5">
-                <Code2 className="w-3.5 h-3.5 text-amber-400" />
-                <span>What Code/File Is Worth Salvaging?</span> <span className="text-red-400">*</span>
+              <label htmlFor="salvage" className={labelCls}>
+                <Code2 className="w-3.5 h-3.5" />
+                <span>What Code/File Is Worth Salvaging?</span>{' '}
+                <span className="text-[#ef4444]">*</span>
               </label>
               <textarea
+                id="salvage"
                 required
                 rows={4}
                 value={salvageableCode}
                 onChange={(e) => setSalvageableCode(e.target.value)}
                 placeholder="Give exact file paths and functions. e.g. 'crates/simd/distance.rs has a standalone zero-allocation cosine distance routine that compiles without external dependencies.'"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 leading-relaxed font-mono text-xs"
+                className={`${fieldCls} leading-relaxed font-mono text-xs`}
               />
             </div>
 
             <div>
-              <label className="block text-xs font-mono text-zinc-300 mb-2 uppercase tracking-wide">
-                Tags (Comma-separated)
-              </label>
+              <label htmlFor="tags" className={labelCls}>Tags (Comma-separated)</label>
               <input
+                id="tags"
                 type="text"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
                 placeholder="TypeScript, SQLite, WebGL, Algorithms, Parser"
-                className="w-full bg-zinc-900 border border-zinc-800 rounded px-3.5 py-2.5 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-hidden focus:border-amber-500 focus:ring-1 focus:ring-amber-500 font-mono text-xs"
+                className={`${fieldCls} font-mono text-xs`}
               />
             </div>
 
             <div className="pt-2">
-              <button
-                type="submit"
-                disabled={isSubmitting || success}
-                className="w-full py-3 px-6 bg-amber-600 hover:bg-amber-500 text-zinc-950 font-mono font-bold text-sm rounded transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
-              >
+              <button type="submit" disabled={isSubmitting || success} className={primaryBtn}>
                 {isSubmitting ? (
-                  <span className="inline-block w-4 h-4 border-2 border-zinc-950 border-t-transparent rounded-full animate-spin" />
+                  <span className="inline-block w-4 h-4 border-2 border-[#080808] border-t-transparent rounded-full animate-spin" />
                 ) : (
                   <>
                     <Upload className="w-4 h-4" />
-                    <span>Publish Project to Scrapyard</span>
+                    <span>Publish Project</span>
                   </>
                 )}
               </button>
@@ -367,50 +358,27 @@ export default function SubmitPage() {
 
           {showPreview && (
             <div className="lg:col-span-5 sticky top-24 self-start">
-              <div className="border border-zinc-800 rounded-lg p-4 bg-zinc-900/50">
-                <span className="block text-xs font-mono text-zinc-400 uppercase tracking-wider mb-3">
+              <div className="rounded-xl p-4 shadow-[inset_0_0_0_1px_#2a2a2a]">
+                <span className="block text-[11px] font-medium text-[#8a8a8a] uppercase tracking-[0.05em] mb-3">
                   Live Card Preview
                 </span>
-                <div className="bg-zinc-900 border border-zinc-800 rounded-lg overflow-hidden">
-                  <div className="aspect-video bg-zinc-950 relative">
+                <div className="rounded-lg overflow-hidden shadow-[inset_0_0_0_1px_#2a2a2a]">
+                  <div className="aspect-video bg-[#141414] relative">
                     {screenshotPreview ? (
-                      <img
-                        src={screenshotPreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={screenshotPreview} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-zinc-600 font-mono text-xs">
+                      <div className="w-full h-full flex items-center justify-center text-[#5c5c5c] text-xs">
                         No screenshot
                       </div>
                     )}
                   </div>
                   <div className="p-4 space-y-3">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono text-zinc-400">{user.username}</span>
-                      <span className="text-[11px] font-mono px-2 py-0.5 bg-zinc-800 rounded text-zinc-300">
-                        GitHub
-                      </span>
+                      <span className="text-xs text-[#8a8a8a]">{user.username}</span>
                     </div>
-                    <h3 className="font-bold text-zinc-100 text-sm">
+                    <h3 className="font-semibold text-[#fafafa] text-sm tracking-[-0.01em]">
                       {title || 'Untitled Project'}
                     </h3>
-                    <div className="p-2 bg-zinc-950 rounded border border-zinc-800 text-xs">
-                      <span className="text-red-400 font-mono text-[10px] block mb-0.5">
-                        Cause of death:
-                      </span>
-                      <p className="text-zinc-400 line-clamp-2">
-                        {reasonAbandoned || 'Why this project was abandoned...'}
-                      </p>
-                    </div>
-                    <div className="p-2 bg-zinc-950 rounded border border-amber-500/20 text-xs font-mono">
-                      <span className="text-amber-400 text-[10px] block mb-0.5">
-                        Salvageable code:
-                      </span>
-                      <p className="text-zinc-300 line-clamp-2 text-[11px]">
-                        {salvageableCode || 'Which file or routine is golden...'}
-                      </p>
-                    </div>
                   </div>
                 </div>
               </div>

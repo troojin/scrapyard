@@ -1,35 +1,75 @@
-import React from 'react';
+'use client';
+
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Wrench, Terminal, Database } from 'lucide-react';
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
+
+const linkCls = 'text-sm text-[#8a8a8a] hover:text-[#fafafa] transition-colors';
+const headCls = `${inter.className} text-sm font-semibold tracking-[-0.01em] text-[#fafafa] mb-1.5`;
 
 export function Footer() {
+  // Set after mount so the page never calls new Date() during prerender.
+  const [year, setYear] = useState(2026);
+  useEffect(() => {
+    setYear(new Date().getFullYear());
+  }, []);
+
   return (
-    <footer className="w-full border-t border-zinc-800 bg-zinc-950 text-zinc-400 py-8 text-xs font-mono">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-500">
-            <Wrench className="w-3 h-3" />
+    <footer
+      className={`${inter.className} w-full border-t border-[#1a1a1a] bg-[#030303] px-4 sm:px-8 pt-16 pb-10 antialiased`}
+    >
+      <div className="max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1fr] gap-x-12 gap-y-10 mb-14 items-start">
+          <div className="flex flex-col gap-4 md:pr-8">
+            <span className="text-xl font-semibold tracking-[-0.025em] text-[#fafafa]">
+              Scrapyard
+            </span>
+            <p className="text-sm leading-[1.75] text-[#656565] max-w-xs">
+              A home for abandoned code. Share what you built, why you stopped, and what’s still
+              worth reusing.
+            </p>
           </div>
-          <span className="font-bold text-zinc-200">SCRAPYARD</span>
-          <span className="text-zinc-600">|</span>
-          <span className="text-zinc-500 text-[11px]">Abandoned code repository</span>
+
+          <div className="flex flex-col gap-3.5">
+            <span className={headCls}>Product</span>
+            <Link href="/" className={linkCls}>
+              Catalog
+            </Link>
+            <Link href="/submit" className={linkCls}>
+              Dump Project
+            </Link>
+            <Link href="/profile" className={linkCls}>
+              Profile
+            </Link>
+          </div>
+
+          <div className="flex flex-col gap-3.5">
+            <span className={headCls}>Legal</span>
+            <Link href="/terms" className={linkCls}>
+              Terms of Service
+            </Link>
+            <Link href="/privacy" className={linkCls}>
+              Privacy Policy
+            </Link>
+          </div>
+
         </div>
 
-        <div className="flex items-center gap-4 text-[11px] text-zinc-400">
-          <Link href="/" className="hover:text-zinc-200 transition-colors">
-            Catalog
-          </Link>
-          <Link href="/submit" className="hover:text-zinc-200 transition-colors">
-            Dump Project
-          </Link>
-          <Link href="/profile" className="hover:text-zinc-200 transition-colors">
-            Profile
-          </Link>
-        </div>
-
-        <div className="flex items-center gap-2 text-[10px] text-zinc-500">
-          <Database className="w-3 h-3 text-amber-500" />
-          <span>PocketBase Backend ({process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8090'})</span>
+        <div className="border-t border-[#141414] pt-7 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <span className="text-xs text-[#5c5c5c]">
+            © {year}{' '}
+            <a
+              href="https://troojin.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#8a8a8a] hover:text-[#fafafa] transition-colors"
+            >
+              troojin
+            </a>
+            . All rights reserved.
+          </span>
         </div>
       </div>
     </footer>

@@ -130,7 +130,7 @@ export default function LoginPage() {
 
         <div className="mt-6 text-center">
           <Link
-            href="/signup"
+            href="/register"
             className="text-sm text-[#8a8a8a] hover:text-[#fafafa] transition-colors"
           >
             Create a new account

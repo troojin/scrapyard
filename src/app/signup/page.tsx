@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { Inter } from 'next/font/google';
-import { Wrench, AlertCircle, ArrowRight, Upload, User } from 'lucide-react';
+import { AlertCircle, ArrowRight, Upload, User } from 'lucide-react';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
@@ -114,9 +114,6 @@ export default function SignupPage() {
     <div className={`${inter.className} min-h-screen bg-[#080808] text-[#fafafa] flex items-center justify-center px-4 py-12 antialiased`}>
       <div className="w-full max-w-md bg-[#080808] rounded-xl p-8 shadow-[inset_0_0_0_1px_#2a2a2a]">
         <div className="text-center mb-6">
-          <div className="w-10 h-10 mx-auto mb-4 rounded-lg bg-[#141414] shadow-[inset_0_0_0_1px_#2a2a2a] flex items-center justify-center text-[#fafafa]">
-            <Wrench className="w-4 h-4" />
-          </div>
           <h1 className="text-2xl font-semibold tracking-[-0.025em] text-[#fafafa]">
             {step === 1 ? 'Create your account' : 'Add a profile picture'}
           </h1>
@@ -161,7 +158,7 @@ export default function SignupPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-5">
             <div>
               <label htmlFor="password" className={labelCls}>Password</label>
               <input
