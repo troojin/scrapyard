@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ClientProviders } from '@/components/ClientProviders';
+import { keywords } from '@/lib/keywords';
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
   title: 'Scrapyard',
   description:
     'A platform for developers to post abandoned side projects, explain why they stopped building, and share the salvageable parts of the code.',
+  keywords,
 };
 
 export default function RootLayout({
