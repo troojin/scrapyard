@@ -53,7 +53,7 @@ export function ProjectCard({ project, onDelete, canManage }: ProjectCardProps) 
         onClick={() => setIsModalOpen(true)}
         onKeyDown={handleCardKeyDown}
         aria-label={`View ${project.title}`}
-        className={`group relative bg-[#080808] rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer select-none border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors duration-150 ease-out motion-reduce:transition-none ${focusRing}`}
+        className={`group relative bg-[#080808] rounded-xl overflow-hidden flex flex-col justify-between cursor-pointer select-none border border-[#2a2a2a] hover:border-[#404040] hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(0,0,0,0.55)] transition-all duration-200 ease-out will-change-transform animate-fade-up motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${focusRing}`}
       >
         <div>
           <div className="relative aspect-video w-full bg-[#141414] overflow-hidden border-b border-[#2a2a2a]">

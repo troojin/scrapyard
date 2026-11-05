@@ -4,6 +4,7 @@ import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { createProjectRecord } from '@/lib/projectsApi';
+import { MAX_PROJECT_IMAGES, MAX_IMAGE_BYTES } from '@/lib/projectImages';
 import { AuthModal } from '@/components/AuthModal';
 import { Inter } from 'next/font/google';
 import {
@@ -36,8 +37,7 @@ export default function SubmitPage() {
 
   const [title, setTitle] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
-  const [screenshotFile, setScreenshotFile] = useState<File | null>(null);
-  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
+  const [images, setImages] = useState<{ id: string; file: File; preview: string }[]>([]);
   const [reasonAbandoned, setReasonAbandoned] = useState('');
   const [salvageableCode, setSalvageableCode] = useState('');
   const [tagsInput, setTagsInput] = useState('');
@@ -50,27 +50,49 @@ export default function SubmitPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image file must be under 5MB');
-        return;
-      }
-      setScreenshotFile(file);
+    const picked = Array.from(e.target.files ?? []);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (picked.length === 0) return;
+
+    setError(null);
+
+    const room = MAX_PROJECT_IMAGES - images.length;
+    if (room <= 0) {
+      setError(`You can add up to ${MAX_PROJECT_IMAGES} images`);
+      return;
+    }
+
+    const tooBig = picked.filter((f) => f.size > MAX_IMAGE_BYTES);
+    const valid = picked.filter((f) => f.size <= MAX_IMAGE_BYTES).slice(0, room);
+
+    if (tooBig.length > 0) {
+      setError('Each image must be under 5MB');
+    } else if (picked.length > room) {
+      setError(`Only ${MAX_PROJECT_IMAGES} images are allowed, so some were skipped`);
+    }
+
+    valid.forEach((file) => {
       const reader = new FileReader();
       reader.onload = (ev) => {
-        setScreenshotPreview(ev.target?.result as string);
+        setImages((prev) =>
+          prev.length >= MAX_PROJECT_IMAGES
+            ? prev
+            : [
+                ...prev,
+                {
+                  id: `${file.name}-${file.size}-${Math.random().toString(36).slice(2, 8)}`,
+                  file,
+                  preview: ev.target?.result as string,
+                },
+              ]
+        );
       };
       reader.readAsDataURL(file);
-    }
+    });
   };
 
-  const removeScreenshot = () => {
-    setScreenshotFile(null);
-    setScreenshotPreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
+  const removeImage = (id: string) => {
+    setImages((prev) => prev.filter((img) => img.id !== id));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -84,6 +106,11 @@ export default function SubmitPage() {
 
     if (!title.trim()) {
       setError('Project title is required');
+      return;
+    }
+
+    if (images.length === 0) {
+      setError('Add at least one image of your project');
       return;
     }
 
@@ -113,7 +140,7 @@ export default function SubmitPage() {
       {
         title: title.trim(),
         github_url: githubUrl.trim(),
-        screenshot: screenshotFile,
+        screenshots: images.map((img) => img.file),
         reason_abandoned: reasonAbandoned.trim(),
         salvageable_code: salvageableCode.trim(),
         tags,
@@ -257,30 +284,19 @@ export default function SubmitPage() {
             </div>
 
             <div>
-              <span className={labelCls}>Project Screenshot / Architecture Diagram</span>
+              <span className={labelCls}>
+                <span>Project Images</span> <span className="text-[#ef4444]">*</span>
+              </span>
               <input
                 type="file"
                 ref={fileInputRef}
                 accept="image/png,image/jpeg,image/webp,image/gif"
+                multiple
                 onChange={handleFileChange}
                 className="hidden"
               />
 
-              {screenshotPreview ? (
-                <div className="relative rounded-lg overflow-hidden shadow-[inset_0_0_0_1px_#2a2a2a] bg-[#080808] aspect-video">
-                  <img src={screenshotPreview} alt="Preview" className="w-full h-full object-cover" />
-                  <div className="absolute top-2 right-2">
-                    <button
-                      type="button"
-                      onClick={removeScreenshot}
-                      className={`p-1.5 bg-[#080808]/90 hover:bg-[#141414] text-[#b8b8b8] hover:text-[#fafafa] rounded-md border border-[#2a2a2a] transition-colors ${focusRing}`}
-                      title="Remove image"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ) : (
+              {images.length === 0 ? (
                 <div
                   onClick={() => fileInputRef.current?.click()}
                   className="border border-dashed border-[#2a2a2a] hover:border-[#3a3a3a] hover:bg-[#141414] rounded-lg p-6 text-center cursor-pointer transition-colors"
@@ -289,10 +305,54 @@ export default function SubmitPage() {
                     <ImageIcon className="w-5 h-5" />
                   </div>
                   <span className="text-sm text-[#fafafa] block mb-1">
-                    Click to upload a screenshot or UI preview
+                    Click to upload screenshots or UI previews
                   </span>
-                  <span className="text-xs text-[#8a8a8a] block">PNG, JPG, WebP up to 5MB</span>
+                  <span className="text-xs text-[#8a8a8a] block">
+                    At least 1 required, up to {MAX_PROJECT_IMAGES}. PNG, JPG, WebP up to 5MB each
+                  </span>
                 </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-3 gap-3">
+                    {images.map((img, i) => (
+                      <div
+                        key={img.id}
+                        className="relative aspect-video rounded-lg overflow-hidden shadow-[inset_0_0_0_1px_#2a2a2a] bg-[#141414]"
+                      >
+                        <img src={img.preview} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
+                        {i === 0 && (
+                          <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 text-[10px] font-medium text-[#fafafa] bg-[#080808]/85 rounded-md border border-[#2a2a2a]">
+                            Cover
+                          </span>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeImage(img.id)}
+                          className={`absolute top-1.5 right-1.5 p-1 bg-[#080808]/90 hover:bg-[#141414] text-[#b8b8b8] hover:text-[#fafafa] rounded-md border border-[#2a2a2a] transition-colors ${focusRing}`}
+                          title="Remove image"
+                          aria-label={`Remove image ${i + 1}`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+
+                    {images.length < MAX_PROJECT_IMAGES && (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`aspect-video rounded-lg border border-dashed border-[#2a2a2a] hover:border-[#3a3a3a] hover:bg-[#141414] text-[#8a8a8a] hover:text-[#fafafa] flex flex-col items-center justify-center gap-1 text-xs transition-colors ${focusRing}`}
+                      >
+                        <Upload className="w-4 h-4" />
+                        <span>Add more</span>
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-xs text-[#8a8a8a] mt-2">
+                    {images.length} of {MAX_PROJECT_IMAGES} images. The first one is the cover shown on the
+                    catalog. Extra images only appear when someone opens the project.
+                  </p>
+                </>
               )}
             </div>
 
@@ -364,8 +424,8 @@ export default function SubmitPage() {
                 </span>
                 <div className="rounded-lg overflow-hidden shadow-[inset_0_0_0_1px_#2a2a2a]">
                   <div className="aspect-video bg-[#141414] relative">
-                    {screenshotPreview ? (
-                      <img src={screenshotPreview} alt="Preview" className="w-full h-full object-cover" />
+                    {images[0] ? (
+                      <img src={images[0].preview} alt="Preview" className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-[#5c5c5c] text-xs">
                         No screenshot

@@ -15,6 +15,7 @@ export interface Project {
   title: string;
   github_url: string;
   screenshot?: string;
+  screenshots?: string[];
   reason_abandoned: string;
   salvageable_code: string;
   user: string;
@@ -31,7 +32,7 @@ export interface Project {
 export interface SubmitProjectInput {
   title: string;
   github_url: string;
-  screenshot?: File | null;
+  screenshots: File[];
   reason_abandoned: string;
   salvageable_code: string;
   tags?: string[];

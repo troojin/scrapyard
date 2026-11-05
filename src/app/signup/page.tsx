@@ -62,7 +62,6 @@ export default function SignupPage() {
     }
   };
 
-  // Step 1: validate account details, then move on to the profile picture step.
   const handleDetails = (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -80,7 +79,6 @@ export default function SignupPage() {
     setStep(2);
   };
 
-  // Step 2: create the account, with or without a profile picture.
   const finishSignup = async (skip = false) => {
     setError(null);
     setLoading(true);
@@ -103,7 +101,6 @@ export default function SignupPage() {
     }
   };
 
-  // TODO: wire these to your OAuth routes / auth provider.
   const handleOAuth = (provider: 'google' | 'github') => {
     window.location.href = `/api/auth/${provider}`;
   };

@@ -35,7 +35,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
-  // TODO: point this at your real email sign-in endpoint (magic link / one-time code).
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -55,7 +54,6 @@ export default function LoginPage() {
     }
   };
 
-  // TODO: wire these to your OAuth routes / auth provider.
   const handleOAuth = (provider: 'google' | 'github') => {
     window.location.href = `/api/auth/${provider}`;
   };

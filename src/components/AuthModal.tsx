@@ -82,7 +82,6 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
       return;
     }
 
-    // Sign up, step 1: validate details, then ask for a profile picture.
     if (password !== passwordConfirm) {
       setError('Passwords do not match');
       return;
@@ -94,7 +93,6 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
     setStep(2);
   };
 
-  // Sign up, step 2: create the account with or without a profile picture.
   const finishSignup = async (skip = false) => {
     setError(null);
     setIsSubmitting(true);
@@ -116,7 +114,6 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
     setIsSubmitting(false);
   };
 
-  // TODO: wire these to your OAuth routes / auth provider.
   const handleOAuth = (provider: 'google' | 'github') => {
     window.location.href = `/api/auth/${provider}`;
   };
@@ -135,8 +132,8 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
   const outlineBtn = `w-full py-2.5 px-4 text-sm font-medium text-[#fafafa] bg-transparent hover:bg-[#141414] border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg transition-[background-color,border-color,transform] duration-150 active:scale-[0.98] flex items-center justify-center gap-2.5 ${focusRing}`;
 
   return (
-    <div className={`${inter.className} fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs antialiased`}>
-      <div className="relative w-full max-w-md bg-[#080808] rounded-xl p-8 shadow-[inset_0_0_0_1px_#2a2a2a] text-[#fafafa] max-h-[calc(100vh-2rem)] overflow-y-auto">
+    <div className={`${inter.className} fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs antialiased animate-backdrop`}>
+      <div className="relative w-full max-w-md bg-[#080808] rounded-xl p-8 shadow-[inset_0_0_0_1px_#2a2a2a] text-[#fafafa] max-h-[calc(100vh-2rem)] overflow-y-auto animate-modal will-change-transform">
         <button
           onClick={onClose}
           className={`absolute top-4 right-4 text-[#8a8a8a] hover:text-[#fafafa] p-1 rounded-md transition-colors ${focusRing}`}
@@ -228,31 +225,30 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="modal-new-password" className={labelCls}>Password</label>
-                  <input
-                    id="modal-new-password"
-                    type="password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Min 8 chars"
-                    className={inputCls}
-                  />
-                </div>
-                <div>
-                  <label htmlFor="modal-confirm" className={labelCls}>Confirm</label>
-                  <input
-                    id="modal-confirm"
-                    type="password"
-                    required
-                    value={passwordConfirm}
-                    onChange={(e) => setPasswordConfirm(e.target.value)}
-                    placeholder="Repeat"
-                    className={inputCls}
-                  />
-                </div>
+              <div>
+                <label htmlFor="modal-new-password" className={labelCls}>Password</label>
+                <input
+                  id="modal-new-password"
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Min 8 chars"
+                  className={inputCls}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="modal-confirm" className={labelCls}>Confirm Password</label>
+                <input
+                  id="modal-confirm"
+                  type="password"
+                  required
+                  value={passwordConfirm}
+                  onChange={(e) => setPasswordConfirm(e.target.value)}
+                  placeholder="Repeat password"
+                  className={inputCls}
+                />
               </div>
             </>
           )}

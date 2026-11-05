@@ -15,9 +15,20 @@ function getLocalProjects(): Project[] {
   }
 }
 
-function saveLocalProjects(projects: Project[]) {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projects));
+function saveLocalProjects(projects: Project[]): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(projects));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function toFileList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string' && v.length > 0);
+  if (typeof value === 'string' && value) return [value];
+  return [];
 }
 
 export async function fetchProjects(query?: { search?: string; tag?: string }): Promise<Project[]> {
@@ -29,6 +40,10 @@ export async function fetchProjects(query?: { search?: string; tag?: string }): 
       if (query?.search) {
         const clean = query.search.replace(/['"\\]/g, '');
         filterParts.push(`(title ~ '${clean}' || reason_abandoned ~ '${clean}' || salvageable_code ~ '${clean}')`);
+      }
+      if (query?.tag) {
+        const cleanTag = query.tag.replace(/['"\\]/g, '');
+        filterParts.push(`tags ~ '${cleanTag}'`);
       }
       const filter = filterParts.join(' && ');
 
@@ -44,6 +59,7 @@ export async function fetchProjects(query?: { search?: string; tag?: string }): 
         title: item.title,
         github_url: item.github_url,
         screenshot: item.screenshot,
+        screenshots: toFileList(item.screenshots),
         reason_abandoned: item.reason_abandoned,
         salvageable_code: item.salvageable_code,
         user: item.user,
@@ -111,6 +127,7 @@ export async function fetchUserProjects(userId: string): Promise<Project[]> {
         title: item.title,
         github_url: item.github_url,
         screenshot: item.screenshot,
+        screenshots: toFileList(item.screenshots),
         reason_abandoned: item.reason_abandoned,
         salvageable_code: item.salvageable_code,
         user: item.user,
@@ -131,10 +148,23 @@ export async function fetchUserProjects(userId: string): Promise<Project[]> {
   return localItems.filter((p) => p.user === userId);
 }
 
+function readAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve((e.target?.result as string) || '');
+    reader.onerror = () => resolve('');
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function createProjectRecord(
   input: SubmitProjectInput,
   currentUser: User
 ): Promise<{ success: boolean; project?: Project; error?: string }> {
+  if (!input.screenshots || input.screenshots.length === 0) {
+    return { success: false, error: 'Add at least one image' };
+  }
+
   const isOnline = await checkPocketBaseConnection();
 
   if (isOnline && pb.authStore.isValid) {
@@ -150,8 +180,8 @@ export async function createProjectRecord(
         formData.append('tags', JSON.stringify(input.tags));
       }
 
-      if (input.screenshot) {
-        formData.append('screenshot', input.screenshot);
+      for (const file of input.screenshots) {
+        formData.append('screenshots', file);
       }
 
       const record = await pb.collection('projects').create(formData, {
@@ -162,7 +192,7 @@ export async function createProjectRecord(
         id: record.id,
         title: record.title,
         github_url: record.github_url,
-        screenshot: record.screenshot,
+        screenshots: toFileList(record.screenshots),
         reason_abandoned: record.reason_abandoned,
         salvageable_code: record.salvageable_code,
         user: record.user,
@@ -182,25 +212,17 @@ export async function createProjectRecord(
     }
   }
 
-  let screenshotDataUrl: string | undefined = undefined;
-  if (input.screenshot) {
-    try {
-      screenshotDataUrl = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onload = (e) => resolve(e.target?.result as string);
-        reader.onerror = () => resolve('');
-        reader.readAsDataURL(input.screenshot as File);
-      });
-    } catch {
-      screenshotDataUrl = undefined;
-    }
+  const screenshotDataUrls = (await Promise.all(input.screenshots.map(readAsDataUrl))).filter(Boolean);
+
+  if (screenshotDataUrls.length === 0) {
+    return { success: false, error: 'Could not read the selected images' };
   }
 
   const newProject: Project = {
     id: `local-${Date.now()}`,
     title: input.title,
     github_url: input.github_url,
-    screenshot: screenshotDataUrl,
+    screenshots: screenshotDataUrls,
     reason_abandoned: input.reason_abandoned,
     salvageable_code: input.salvageable_code,
     user: currentUser.id,
@@ -212,7 +234,14 @@ export async function createProjectRecord(
   };
 
   const existing = getLocalProjects();
-  saveLocalProjects([newProject, ...existing]);
+  const saved = saveLocalProjects([newProject, ...existing]);
+
+  if (!saved) {
+    return {
+      success: false,
+      error: 'Not enough browser storage for these images in offline mode. Try fewer or smaller images.',
+    };
+  }
 
   return { success: true, project: newProject };
 }

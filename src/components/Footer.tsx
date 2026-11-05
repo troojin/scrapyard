@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { Inter } from 'next/font/google';
 
@@ -18,8 +19,23 @@ export function Footer() {
 
   return (
     <footer
-      className={`${inter.className} w-full border-t border-[#1a1a1a] bg-[#030303] px-4 sm:px-8 pt-16 pb-10 antialiased`}
+      className={`${inter.className} relative isolate overflow-hidden w-full border-t border-[#1a1a1a] bg-[#030303] px-4 sm:px-8 pt-16 pb-10 antialiased`}
     >
+      {/* Globe: sits in the bottom-right corner and bleeds off the edge, like a planet on the horizon. */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <Image
+          src="/globe.jpg"
+          alt=""
+          width={1200}
+          height={798}
+          sizes="(min-width: 1024px) 760px, 560px"
+          className="absolute max-w-none select-none w-[560px] lg:w-[760px] -right-24 -bottom-28 lg:-right-16 lg:-bottom-40 opacity-50 sm:opacity-70 mix-blend-screen"
+        />
+        {/* Fade the image into the footer so the text stays readable. */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#030303] via-[#030303]/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#030303] via-transparent to-[#030303]/50" />
+      </div>
+
       <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-[2fr_1fr_1fr] gap-x-12 gap-y-10 mb-14 items-start">
           <div className="flex flex-col gap-4 md:pr-8">
@@ -54,7 +70,6 @@ export function Footer() {
               Privacy Policy
             </Link>
           </div>
-
         </div>
 
         <div className="border-t border-[#141414] pt-7 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">

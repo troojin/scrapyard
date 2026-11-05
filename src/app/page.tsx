@@ -3,9 +3,10 @@
 import React, { useEffect, useState, useTransition } from 'react';
 import { fetchProjects } from '@/lib/projectsApi';
 import { ProjectCard } from '@/components/ProjectCard';
+import { TagFilter } from '@/components/TagFilter';
 import type { Project } from '@/types';
 import { Inter } from 'next/font/google';
-import { Search, Filter, RefreshCw } from 'lucide-react';
+import { Search, RefreshCw } from 'lucide-react';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
@@ -86,6 +87,9 @@ export default function FeedPage() {
               />
             </div>
 
+            <div className="flex items-center gap-2">
+            <TagFilter tags={TAG_FILTERS} selected={selectedTag} onSelect={handleTagClick} />
+
             <button
               type="button"
               onClick={() => loadProjects(search, selectedTag)}
@@ -95,28 +99,9 @@ export default function FeedPage() {
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
               <span>Refresh</span>
             </button>
+            </div>
           </div>
 
-          <div className="mt-5 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <span className="text-[#5c5c5c] text-[11px] font-medium uppercase tracking-[0.05em] mr-1 flex items-center gap-1 shrink-0">
-              <Filter className="w-3 h-3" />
-              Tag
-            </span>
-            {TAG_FILTERS.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => handleTagClick(tag)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors whitespace-nowrap ${focusRing} ${
-                  selectedTag === tag
-                    ? 'bg-[#fafafa] text-[#080808]'
-                    : 'bg-transparent text-[#8a8a8a] hover:text-[#fafafa] hover:bg-[#141414] border border-[#2a2a2a] hover:border-[#3a3a3a]'
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
         </div>
       </section>
 
