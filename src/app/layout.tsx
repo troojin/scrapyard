@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { ClientProviders } from '@/components/ClientProviders';
+import { FeedFilterProvider } from '@/context/FeedFilterContext';
 import { keywords } from '@/lib/keywords';
 
 const geistSans = Geist({
@@ -32,7 +33,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full bg-zinc-950 text-zinc-100 font-sans">
-        <ClientProviders>{children}</ClientProviders>
+        <FeedFilterProvider>
+          <ClientProviders>{children}</ClientProviders>
+        </FeedFilterProvider>
       </body>
     </html>
   );

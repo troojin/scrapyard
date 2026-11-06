@@ -41,3 +41,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 pocketbase/pb_data/
+pocketbase/.pb_data/
+.pb_data/

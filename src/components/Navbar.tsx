@@ -4,10 +4,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useFeedFilter, TAG_FILTERS } from '@/context/FeedFilterContext';
 import { AuthModal } from './AuthModal';
+import { TagFilter } from '@/components/TagFilter';
 import { getAvatarUrl } from '@/lib/pocketbase';
+import { fetchProjects } from '@/lib/projectsApi';
+import type { Project } from '@/types';
 import { Inter } from 'next/font/google';
-import { Plus, User, LogOut, ChevronDown } from 'lucide-react';
+import { Plus, User, LogOut, ChevronDown, Search } from 'lucide-react';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
@@ -16,11 +20,17 @@ const focusRing = 'focus:outline-none focus:shadow-[0_0_0_2px_rgba(250,250,250,0
 export function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { search, setSearch, selectedTag, setSelectedTag, docked } = useFeedFilter();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const searchWrapRef = useRef<HTMLDivElement>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [results, setResults] = useState<Project[]>([]);
+  const [resultsLoading, setResultsLoading] = useState(false);
 
   const avatarUrl = user ? getAvatarUrl(user) : '';
+  const showDockedControls = pathname === '/' && docked;
 
   useEffect(() => {
     if (!isUserMenuOpen) return;
@@ -42,22 +52,144 @@ export function Navbar() {
     };
   }, [isUserMenuOpen]);
 
+  useEffect(() => {
+    if (!isSearchOpen) return;
+
+    const onPointerDown = (e: MouseEvent) => {
+      if (searchWrapRef.current && !searchWrapRef.current.contains(e.target as Node)) {
+        setIsSearchOpen(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsSearchOpen(false);
+        (document.activeElement as HTMLElement | null)?.blur();
+      }
+    };
+
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (!isSearchOpen) return;
+    let cancelled = false;
+    setResultsLoading(true);
+    const t = setTimeout(async () => {
+      const data = await fetchProjects({
+        search: search.trim() || undefined,
+        tag: selectedTag === 'All' ? undefined : selectedTag,
+      });
+      if (!cancelled) {
+        setResults(data.slice(0, 6));
+        setResultsLoading(false);
+      }
+    }, 200);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [search, selectedTag, isSearchOpen]);
+
+  useEffect(() => {
+    if (!showDockedControls) setIsSearchOpen(false);
+  }, [showDockedControls]);
+
   const menuItemCls = `w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#b8b8b8] hover:bg-[#141414] hover:text-[#fafafa] transition-colors text-left ${focusRing}`;
 
   return (
     <>
+      <div
+        aria-hidden="true"
+        className={`fixed inset-0 z-30 bg-black/40 backdrop-blur-md transition-opacity duration-300 ease-out ${
+          isSearchOpen && showDockedControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      />
       <header
         className={`${inter.className} sticky top-0 z-40 w-full bg-[#080808]/90 border-b border-[#1a1a1a] backdrop-blur-md antialiased`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4 md:grid md:grid-cols-[1fr_auto_1fr]">
           <Link
             href="/"
-            className="text-lg font-semibold tracking-[-0.025em] text-[#fafafa] hover:text-[#b8b8b8] transition-colors"
+            className="text-lg font-semibold tracking-[-0.025em] text-[#fafafa] hover:text-[#b8b8b8] transition-colors shrink-0 justify-self-start"
           >
             Scrapyard
           </Link>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div
+            ref={searchWrapRef}
+            aria-hidden={!showDockedControls}
+            className={`relative hidden md:block md:w-[28rem] lg:w-[40rem] transition-all duration-300 ease-out ${
+              showDockedControls
+                ? 'opacity-100 translate-y-0'
+                : 'opacity-0 -translate-y-3 pointer-events-none'
+            }`}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="relative flex-1 min-w-0">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#5c5c5c]" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onFocus={() => setIsSearchOpen(true)}
+                  tabIndex={showDockedControls ? 0 : -1}
+                  placeholder="Search by title, tag, or file name..."
+                  className={`w-full h-10 bg-transparent border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg px-3 pl-9 text-[13px] text-[#fafafa] placeholder:text-[#5c5c5c] transition-[border-color,box-shadow] duration-150 ${focusRing}`}
+                />
+              </div>
+              <div className="h-10 shrink-0 [&_button]:h-10">
+                <TagFilter tags={TAG_FILTERS} selected={selectedTag} onSelect={setSelectedTag} />
+              </div>
+            </div>
+
+            <div
+              className={`absolute left-0 right-0 top-full mt-2 origin-top bg-[#080808] rounded-xl p-1.5 z-50 shadow-[inset_0_0_0_1px_#2a2a2a,0_24px_60px_rgba(0,0,0,0.7)] transition-all duration-200 ease-out ${
+                isSearchOpen && showDockedControls
+                  ? 'opacity-100 scale-100 translate-y-0'
+                  : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'
+              }`}
+            >
+              <div className="px-3 pt-2 pb-1.5 flex items-center justify-between">
+                <span className="text-[11px] font-medium text-[#5c5c5c] uppercase tracking-[0.05em]">
+                  {search.trim() ? 'Results' : 'Latest projects'}
+                </span>
+                <span className="text-[11px] text-[#5c5c5c]">
+                  {resultsLoading ? 'Searching...' : `${results.length} shown`}
+                </span>
+              </div>
+
+              {results.length === 0 && !resultsLoading ? (
+                <div className="px-3 py-6 text-center text-sm text-[#8a8a8a]">
+                  Nothing matched. Try a different term or tag.
+                </div>
+              ) : (
+                <ul>
+                  {results.map((project) => (
+                    <li key={project.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearch(project.title);
+                          setIsSearchOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#b8b8b8] hover:bg-[#141414] hover:text-[#fafafa] transition-colors text-left ${focusRing}`}
+                      >
+                        <Search className="w-3.5 h-3.5 text-[#5c5c5c] shrink-0" />
+                        <span className="truncate">{project.title}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 justify-self-end">
             <Link
               href="/submit"
               className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-[background-color,transform,border-color] duration-150 active:scale-[0.98] ${focusRing} ${

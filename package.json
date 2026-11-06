@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "pb": ".\\pocketbase\\pocketbase.exe serve --http=127.0.0.1:8090",
+    "pb": ".\\pocketbase\\pocketbase.exe serve --http=127.0.0.1:8090 --dir=pocketbase\\.pb_data",
     "pb:setup": "node scripts/setup-db.mjs",
     "pb:seed": "node scripts/seed-data.mjs"
   },
