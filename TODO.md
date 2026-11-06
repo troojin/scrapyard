@@ -2,87 +2,87 @@
 
 ## 1. UI & Core Polish (Current Touch-Ups)
 
-* [ ] **Card Layout Consistency:** Verify project cards handle missing screenshots, long titles, and multi-line "cause of death" / "salvage" notes cleanly without breaking grid height.
+* [x] **Card Layout Consistency:** Verify project cards handle missing screenshots, long titles, and multi-line "cause of death" / "salvage" notes cleanly without breaking grid height.
 
-* [ ] **Profile Pictures / Avatars:**
+* [x] **Profile Pictures / Avatars:**
 
-  * [ ] Ensure fallback avatar renders when a user hasn't uploaded a custom profile picture.
+  * [x] Ensure fallback avatar renders when a user hasn't uploaded a custom profile picture.
 
-  * [ ] Verify image uploads compress/resize properly or validate max file size (e.g., `< 5MB`).
+  * [x] Verify image uploads compress/resize properly or validate max file size (e.g., `< 5MB`).
 
-* [ ] **Search & Filter Controls:**
+* [x] **Search & Filter Controls:**
 
-  * [ ] Add a **Price Range filter** (e.g., Free only, Under $25, $25–$100, $100+, or Min/Max inputs) to the main feed filter bar.
+  * [x] Add a **Price Range filter** (e.g., Free only, Under $25, $25–$100, $100+, or Min/Max inputs) to the main feed filter bar.
 
-  * [ ] Sync price range filter state with URL search params (`?minPrice=...&maxPrice=...`).
+  * [x] Sync price range filter state with URL search params (`?min=...&max=...`).
 
-* [ ] **Form Validation & States:**
+* [x] **Form Validation & States:**
 
-  * [ ] Add loading spinners / disabled states on the `/submit` button to prevent double-submissions.
+  * [x] Add loading spinners / disabled states on the `/submit` button to prevent double-submissions.
 
-  * [ ] Validate GitHub URLs (`https://github.com/...`) before saving.
+  * [x] Validate GitHub URLs (`https://github.com/...`) before saving.
 
-* [ ] **Empty & Error States:** Add clean fallback states when filters return `0` projects or when an API fetch fails.
+* [x] **Empty & Error States:** Add clean fallback states when filters return `0` projects or when an API fetch fails.
 
 ## 2. Marketplace & Monetization ("Sell Project" Feature)
 
-* [ ] **Database Fields Update:**
+* [x] **Database Fields Update:**
 
-  * [ ] Add `is_for_sale` (boolean) and `price` (number) to the `projects` collection/table.
+  * [x] Add `is_for_sale` (boolean) and `price` (number) to the `projects` collection/table.
 
-  * [ ] Add `sold` (boolean) or `license_type` (`multiple_clones` vs `one_time_buyout`).
+  * [x] Add `sold` (boolean) or `license_type` (`multiple_clones` vs `one_time_buyout`).
 
-  * [ ] Add `archive_file` (or private repo identifier) field that stays hidden from public API responses until purchased.
+  * [x] Add `archive_file` (or private repo identifier) field that stays hidden from public API responses until purchased.
 
-* [ ] **Seller Onboarding (Stripe Connect):**
+* [x] **Seller Onboarding (Stripe Connect):**
 
-  * [ ] Add `stripe_account_id` and `stripe_onboarded` (boolean) to the `users` table.
+  * [x] Add `stripe_account_id` and `stripe_onboarded` (boolean) to the `users` table.
 
-  * [ ] Create `/api/stripe/connect` route to generate an onboarding link for sellers.
+  * [x] Create `/api/stripe/connect` route to generate an onboarding link for sellers.
 
-* [ ] **Checkout & Platform Cut:**
+* [x] **Checkout & Platform Cut:**
 
-  * [ ] Create `/api/stripe/checkout` route using `application_fee_amount` (e.g., 10% platform fee).
+  * [x] Create `/api/stripe/checkout` route using `application_fee_amount` (e.g., 10% platform fee).
 
-  * [ ] Create `/api/stripe/webhook` listening for `checkout.session.completed` to record the purchase in a `purchases` table.
+  * [x] Create `/api/stripe/webhook` listening for `checkout.session.completed` to record the purchase in a `purchases` table.
 
-* [ ] **Code Delivery Flow:**
+* [x] **Code Delivery Flow:**
 
-  * [ ] Unlock the `.zip` download link or trigger a GitHub collaborator invite on the project page once `purchases` confirms the user bought it.
+  * [x] Unlock the `.zip` download link or trigger a GitHub collaborator invite on the project page once `purchases` confirms the user bought it.
 
 ## 3. Legal & Marketplace Compliance Pages
 
-* [ ] **Terms of Service (`/terms`):**
+* [x] **Terms of Service (`/terms`):**
 
-  * [ ] **"As-Is" Code Disclaimer:** Explicitly state that all abandoned/salvaged code is provided "as-is" with zero warranty, and neither Scrapyard nor the seller is liable if the code is broken or causes issues.
+  * [x] **"As-Is" Code Disclaimer:** Explicitly state that all abandoned/salvaged code is provided "as-is" with zero warranty, and neither Scrapyard nor the seller is liable if the code is broken or causes issues.
 
-  * [ ] **Seller Ownership Agreement:** Require sellers to confirm they actually wrote and own the rights to the code they are uploading/selling (and didn't just rip someone else's repo).
+  * [x] **Seller Ownership Agreement:** Require sellers to confirm they actually wrote and own the rights to the code they are uploading/selling (and didn't just rip someone else's repo).
 
-  * [ ] **License Definition:** Clarify what a buyer actually gets when they buy a project (e.g., non-exclusive commercial right to use/modify the source code vs. full IP transfer).
+  * [x] **License Definition:** Clarify what a buyer actually gets when they buy a project (e.g., non-exclusive commercial right to use/modify the source code vs. full IP transfer).
 
-* [ ] **Privacy Policy (`/privacy`):**
+* [x] **Privacy Policy (`/privacy`):**
 
-  * [ ] Disclose what data is collected (email, username, profile picture, GitHub handle, IP address).
+  * [x] Disclose what data is collected (email, username, profile picture, GitHub handle, IP address).
 
-  * [ ] State that payment details are processed securely via Stripe and never stored on your servers.
+  * [x] State that payment details are processed securely via Stripe and never stored on your servers.
 
-  * [ ] Explain cookie/session usage for authentication.
+  * [x] Explain cookie/session usage for authentication.
 
-* [ ] **Refund & Dispute Policy (`/refunds`):**
+* [x] **Refund & Dispute Policy (`/refunds`):**
 
-  * [ ] **All Sales Final Policy:** Because buyers get instant access to raw source code / `.zip` files (which cannot be "returned"), state that all digital sales are final.
+  * [x] **All Sales Final Policy:** Because buyers get instant access to raw source code / `.zip` files (which cannot be "returned"), state that all digital sales are final.
 
-  * [ ] **Exception Clause:** Outline the only valid refund reason (e.g., the seller uploaded an empty/corrupted archive or completely misrepresented the repo contents) and set a 48-hour window to report it.
+  * [x] **Exception Clause:** Outline the only valid refund reason (e.g., the seller uploaded an empty/corrupted archive or completely misrepresented the repo contents) and set a 48-hour window to report it.
 
-* [ ] **DMCA / Copyright Takedown (`/dmca`):**
+* [x] **DMCA / Copyright Takedown (`/dmca`):**
 
-  * [ ] Provide an email address (`legal@yourdomain.com` or `dmca@yourdomain.com`) where original authors can report if someone tries to sell their stolen GitHub repo, so you have Safe Harbor protection.
+  * [x] Provide an email address (`legal@yourdomain.com` or `dmca@yourdomain.com`) where original authors can report if someone tries to sell their stolen GitHub repo, so you have Safe Harbor protection.
 
-* [ ] **Footer & Submission Checkboxes:**
+* [x] **Footer & Submission Checkboxes:**
 
-  * [ ] Add links to `/terms`, `/privacy`, `/refunds`, and `/dmca` in the global site footer (Stripe requires visible Terms, Privacy, and Refund policies before approving live payouts).
+  * [x] Add links to `/terms`, `/privacy`, `/refunds`, and `/dmca` in the global site footer (Stripe requires visible Terms, Privacy, and Refund policies before approving live payouts).
 
-  * [ ] Add a required checkbox on `/submit`: *"I confirm I own the rights to this code and agree to the Terms of Service."*
+  * [x] Add a required checkbox on `/submit`: *"I confirm I own the rights to this code and agree to the Terms of Service."*
 
 ## 4. Infrastructure & Custom `api.` Domain
 
@@ -100,8 +100,8 @@
 
 ## 5. Pre-Launch Seed & Release
 
-* [ ] **Seed Initial Projects:** Upload 3–5 of your own shelved projects (mix of Free Salvage and $10–$25 For Sale items) so the feed looks active on day one.
+* [x] **Seed Initial Projects:** Upload 3–5 of your own shelved projects (mix of Free Salvage and $10–$25 For Sale items) so the feed looks active on day one.
 
 * [ ] **OpenGraph / Social Preview:** Add `og:image` and clean meta tags so links shared on X, Discord, and Reddit render a crisp preview card.
 
-* [ ] **Smoke Test:** Do one full test run in production (Sign up -> Upload avatar -> Post free project -> Post paid project -> Test checkout).
+* [x] **Smoke Test:** Do one full test run in production (Sign up -> Upload avatar -> Post free project -> Post paid project -> Test checkout).

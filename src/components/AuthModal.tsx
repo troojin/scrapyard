@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@/context/AuthContext';
 import { Inter } from 'next/font/google';
 import { X, Upload, User, AlertCircle, ArrowRight } from 'lucide-react';
@@ -49,10 +50,15 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
+  const [mounted, setMounted] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -131,7 +137,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
 
   const outlineBtn = `w-full py-2.5 px-4 text-sm font-medium text-[#fafafa] bg-transparent hover:bg-[#141414] border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg transition-[background-color,border-color,transform] duration-150 active:scale-[0.98] flex items-center justify-center gap-2.5 ${focusRing}`;
 
-  return (
+  return createPortal(
     <div className={`${inter.className} fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs antialiased animate-backdrop`}>
       <div className="relative w-full max-w-md bg-[#080808] rounded-xl p-8 shadow-[inset_0_0_0_1px_#2a2a2a] text-[#fafafa] max-h-[calc(100vh-2rem)] overflow-y-auto animate-modal will-change-transform">
         <button
@@ -348,6 +354,7 @@ export function AuthModal({ isOpen, onClose, initialMode = 'login' }: AuthModalP
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

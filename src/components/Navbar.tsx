@@ -11,16 +11,28 @@ import { getAvatarUrl } from '@/lib/pocketbase';
 import { fetchProjects } from '@/lib/projectsApi';
 import type { Project } from '@/types';
 import { Inter } from 'next/font/google';
-import { Plus, User, LogOut, ChevronDown, Search } from 'lucide-react';
+import { Plus, User, LogOut, ChevronDown, Search, ShoppingBag } from 'lucide-react';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
-const focusRing = 'focus:outline-none focus:shadow-[0_0_0_2px_rgba(250,250,250,0.3)]';
+const focusRing = 'focus:outline-none focus-visible:shadow-[0_0_0_2px_rgba(250,250,250,0.3)]';
+
+const menuItemCls = `w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#b8b8b8] hover:bg-[#141414] hover:text-[#fafafa] transition-colors text-left ${focusRing}`;
 
 export function Navbar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
-  const { search, setSearch, selectedTag, setSelectedTag, docked } = useFeedFilter();
+  const {
+    search,
+    setSearch,
+    selectedTag,
+    setSelectedTag,
+    minPrice,
+    maxPrice,
+    setMinPrice,
+    setMaxPrice,
+    docked,
+  } = useFeedFilter();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -31,6 +43,11 @@ export function Navbar() {
 
   const avatarUrl = user ? getAvatarUrl(user) : '';
   const showDockedControls = pathname === '/' && docked;
+
+  const handlePriceChange = (min: string, max: string) => {
+    setMinPrice(min);
+    setMaxPrice(max);
+  };
 
   useEffect(() => {
     if (!isUserMenuOpen) return;
@@ -80,9 +97,14 @@ export function Navbar() {
     let cancelled = false;
     setResultsLoading(true);
     const t = setTimeout(async () => {
+      const minNum = minPrice.trim() ? parseFloat(minPrice) : undefined;
+      const maxNum = maxPrice.trim() ? parseFloat(maxPrice) : undefined;
+
       const data = await fetchProjects({
         search: search.trim() || undefined,
         tag: selectedTag === 'All' ? undefined : selectedTag,
+        minPrice: isNaN(minNum as number) ? undefined : minNum,
+        maxPrice: isNaN(maxNum as number) ? undefined : maxNum,
       });
       if (!cancelled) {
         setResults(data.slice(0, 6));
@@ -93,13 +115,11 @@ export function Navbar() {
       cancelled = true;
       clearTimeout(t);
     };
-  }, [search, selectedTag, isSearchOpen]);
+  }, [search, selectedTag, minPrice, maxPrice, isSearchOpen]);
 
   useEffect(() => {
     if (!showDockedControls) setIsSearchOpen(false);
   }, [showDockedControls]);
-
-  const menuItemCls = `w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#b8b8b8] hover:bg-[#141414] hover:text-[#fafafa] transition-colors text-left ${focusRing}`;
 
   return (
     <>
@@ -142,9 +162,16 @@ export function Navbar() {
                   className={`w-full h-10 bg-transparent border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg px-3 pl-9 text-[13px] text-[#fafafa] placeholder:text-[#5c5c5c] transition-[border-color,box-shadow] duration-150 ${focusRing}`}
                 />
               </div>
-              <div className="h-10 shrink-0 [&_button]:h-10">
-                <TagFilter tags={TAG_FILTERS} selected={selectedTag} onSelect={setSelectedTag} />
-              </div>
+              <TagFilter
+                tags={TAG_FILTERS}
+                selected={selectedTag}
+                onSelect={setSelectedTag}
+                minPrice={minPrice}
+                maxPrice={maxPrice}
+                onPriceChange={handlePriceChange}
+                align="right"
+                triggerClassName="h-10 shrink-0"
+              />
             </div>
 
             <div
@@ -177,7 +204,7 @@ export function Navbar() {
                           setSearch(project.title);
                           setIsSearchOpen(false);
                         }}
-                        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-[#b8b8b8] hover:bg-[#141414] hover:text-[#fafafa] transition-colors text-left ${focusRing}`}
+                        className={menuItemCls}
                       >
                         <Search className="w-3.5 h-3.5 text-[#5c5c5c] shrink-0" />
                         <span className="truncate">{project.title}</span>
@@ -210,16 +237,16 @@ export function Navbar() {
                   onClick={() => setIsUserMenuOpen((o) => !o)}
                   aria-haspopup="menu"
                   aria-expanded={isUserMenuOpen}
-                  className={`flex items-center gap-2 pl-1.5 pr-2.5 py-1.5 bg-transparent hover:bg-[#141414] border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg transition-colors text-[13px] text-[#fafafa] ${focusRing}`}
+                  aria-label="Account menu"
+                  className={`flex items-center gap-1 p-1 pr-1.5 rounded-full hover:bg-[#141414] transition-colors ${focusRing}`}
                 >
-                  <div className="w-6 h-6 rounded-full overflow-hidden bg-[#141414] shadow-[inset_0_0_0_1px_#2a2a2a] shrink-0 flex items-center justify-center">
+                  <span className="w-8 h-8 rounded-full overflow-hidden bg-[#141414] shadow-[inset_0_0_0_1px_#2a2a2a] flex items-center justify-center">
                     {avatarUrl ? (
-                      <img src={avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+                      <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
                     ) : (
-                      <User className="w-3.5 h-3.5 text-[#8a8a8a]" />
+                      <User className="w-4 h-4 text-[#8a8a8a]" />
                     )}
-                  </div>
-                  <span className="font-medium max-w-[100px] truncate">{user.username}</span>
+                  </span>
                   <ChevronDown
                     className={`w-3.5 h-3.5 text-[#8a8a8a] transition-transform duration-200 ${isUserMenuOpen ? 'rotate-180' : ''}`}
                   />
@@ -228,36 +255,37 @@ export function Navbar() {
                 {isUserMenuOpen && (
                   <div
                     role="menu"
-                    className="absolute right-0 mt-2 w-52 bg-[#080808] rounded-xl p-1.5 z-50 shadow-[inset_0_0_0_1px_#2a2a2a,0_16px_40px_rgba(0,0,0,0.6)] animate-dropdown will-change-transform"
+                    className="absolute right-0 mt-2 w-56 bg-[#0c0c0c] rounded-xl p-1.5 z-50 shadow-[inset_0_0_0_1px_#2a2a2a,0_16px_40px_rgba(0,0,0,0.6)] animate-dropdown will-change-transform"
                   >
-                    <div className="px-3 py-2 mb-1">
-                      <span className="block text-[11px] font-medium text-[#5c5c5c] uppercase tracking-[0.05em]">
-                        Signed in as
-                      </span>
-                      <span className="text-sm font-semibold text-[#fafafa] truncate block mt-0.5">
+                    <div className="px-3 py-2.5">
+                      <span className="block text-sm font-medium text-[#fafafa] truncate">
                         {user.username}
                       </span>
                     </div>
+
+                    <div className="my-1 h-px bg-[#1a1a1a]" />
 
                     <Link
                       href="/profile"
                       role="menuitem"
                       onClick={() => setIsUserMenuOpen(false)}
-                      className={`${menuItemCls} rounded-lg`}
+                      className={menuItemCls}
                     >
                       <User className="w-4 h-4 text-[#8a8a8a]" />
-                      <span>Profile & Projects</span>
+                      <span>Profile</span>
                     </Link>
 
                     <Link
-                      href="/submit"
+                      href="/purchases"
                       role="menuitem"
                       onClick={() => setIsUserMenuOpen(false)}
-                      className={`${menuItemCls} rounded-lg`}
+                      className={menuItemCls}
                     >
-                      <Plus className="w-4 h-4 text-[#8a8a8a]" />
-                      <span>Submit Project</span>
+                      <ShoppingBag className="w-4 h-4 text-[#8a8a8a]" />
+                      <span>Purchases</span>
                     </Link>
+
+                    <div className="my-1 h-px bg-[#1a1a1a]" />
 
                     <button
                       type="button"
@@ -266,10 +294,10 @@ export function Navbar() {
                         setIsUserMenuOpen(false);
                         logout();
                       }}
-                      className={`w-full flex items-center gap-2.5 px-3 py-2 text-sm text-[#ef4444] hover:bg-[#141414] hover:text-[#fca5a5] transition-colors text-left rounded-lg mt-1 ${focusRing}`}
+                      className={menuItemCls}
                     >
-                      <LogOut className="w-4 h-4" />
-                      <span>Sign Out</span>
+                      <LogOut className="w-4 h-4 text-[#8a8a8a]" />
+                      <span>Sign out</span>
                     </button>
                   </div>
                 )}

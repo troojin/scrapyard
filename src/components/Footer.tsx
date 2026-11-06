@@ -11,7 +11,6 @@ const linkCls = 'text-sm text-[#8a8a8a] hover:text-[#fafafa] transition-colors';
 const headCls = `${inter.className} text-sm font-semibold tracking-[-0.01em] text-[#fafafa] mb-1.5`;
 
 export function Footer() {
-  // Set after mount so the page never calls new Date() during prerender.
   const [year, setYear] = useState(2026);
   useEffect(() => {
     setYear(new Date().getFullYear());
@@ -21,7 +20,6 @@ export function Footer() {
     <footer
       className={`${inter.className} relative isolate overflow-hidden w-full border-t border-[#1a1a1a] bg-[#030303] px-4 sm:px-8 pt-16 pb-10 antialiased`}
     >
-      {/* Globe: sits in the bottom-right corner and bleeds off the edge, like a planet on the horizon. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
         <Image
           src="/globe.jpg"
@@ -29,9 +27,8 @@ export function Footer() {
           width={1200}
           height={798}
           sizes="(min-width: 1024px) 760px, 560px"
-          className="absolute max-w-none select-none w-[560px] lg:w-[760px] -right-24 -bottom-28 lg:-right-16 lg:-bottom-40 opacity-50 sm:opacity-70 mix-blend-screen"
+          className="absolute max-w-none select-none w-[560px] lg:w-[760px] -right-24 -bottom-28 lg:-right-16 lg:-bottom-40 opacity-50 sm:opacity-70 mix-blend-screen blur-2xl"
         />
-        {/* Fade the image into the footer so the text stays readable. */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#030303] via-[#030303]/60 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-b from-[#030303] via-transparent to-[#030303]/50" />
       </div>
@@ -56,6 +53,9 @@ export function Footer() {
             <Link href="/submit" className={linkCls}>
               Dump Project
             </Link>
+            <Link href="/purchases" className={linkCls}>
+              Purchased Codebases
+            </Link>
             <Link href="/profile" className={linkCls}>
               Profile
             </Link>
@@ -68,6 +68,12 @@ export function Footer() {
             </Link>
             <Link href="/privacy" className={linkCls}>
               Privacy Policy
+            </Link>
+            <Link href="/refunds" className={linkCls}>
+              Refund Policy
+            </Link>
+            <Link href="/dmca" className={linkCls}>
+              DMCA Notice
             </Link>
           </div>
         </div>

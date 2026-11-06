@@ -4,8 +4,13 @@ import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { createProjectRecord } from '@/lib/projectsApi';
+import { inspectZipArchive, formatBytes } from '@/lib/archiveValidator';
 import { MAX_PROJECT_IMAGES, MAX_IMAGE_BYTES } from '@/lib/projectImages';
 import { AuthModal } from '@/components/AuthModal';
+import { ProjectPreview } from '@/components/ProjectPreview';
+import { FileTreePreview } from '@/components/FileTreePreview';
+import { getAvatarUrl } from '@/lib/pocketbase';
+import type { FileTreeItem } from '@/types';
 import { Inter } from 'next/font/google';
 import {
   Upload,
@@ -14,40 +19,103 @@ import {
   AlertCircle,
   CheckCircle2,
   ArrowLeft,
-  GitBranch,
-  Code2,
-  Skull,
-  Eye,
-  EyeOff,
+  FolderArchive,
+  Loader2,
 } from 'lucide-react';
 import Link from 'next/link';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
-const focusRing = 'focus:outline-none focus:shadow-[0_0_0_2px_rgba(250,250,250,0.3)]';
-const labelCls =
-  'flex items-center gap-1.5 text-[11px] font-medium text-[#8a8a8a] mb-2 uppercase tracking-[0.05em]';
+const focusRing = 'focus:outline-none focus-visible:shadow-[0_0_0_2px_rgba(250,250,250,0.3)]';
+
 const fieldCls = `w-full bg-transparent border border-[#2a2a2a] hover:border-[#3a3a3a] rounded-lg px-3.5 py-2.5 text-sm text-[#fafafa] placeholder:text-[#5c5c5c] transition-[border-color,box-shadow] duration-150 ${focusRing}`;
-const primaryBtn = `group w-full py-2.5 px-4 bg-[#fafafa] hover:bg-white text-[#080808] font-medium text-sm rounded-lg transition-[background-color,transform] duration-150 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60 disabled:active:scale-100 ${focusRing}`;
+const primaryBtn = `w-full py-2.5 px-4 bg-[#fafafa] hover:bg-white text-[#080808] font-medium text-sm rounded-lg transition-[background-color,transform] duration-150 active:scale-[0.98] flex items-center justify-center gap-2 disabled:opacity-60 disabled:active:scale-100 ${focusRing}`;
+const dropCls = `w-full border border-dashed border-[#2a2a2a] hover:border-[#3a3a3a] hover:bg-[#141414] rounded-lg p-6 text-center transition-colors ${focusRing}`;
+const backLinkCls =
+  'group inline-flex items-center gap-1.5 text-sm text-[#8a8a8a] hover:text-[#fafafa] transition-colors';
+
+function BackLink() {
+  return (
+    <Link href="/" className={backLinkCls}>
+      <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
+      <span>Back to catalog</span>
+    </Link>
+  );
+}
+
+function Field({
+  label,
+  htmlFor,
+  optional,
+  hint,
+  children,
+}: {
+  label: string;
+  htmlFor?: string;
+  optional?: boolean;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <label htmlFor={htmlFor} className="flex items-baseline gap-2 text-sm font-medium text-[#fafafa]">
+        <span>{label}</span>
+        {optional && <span className="text-xs font-normal text-[#5c5c5c]">Optional</span>}
+      </label>
+      {children}
+      {hint && <p className="text-xs text-[#737373] leading-relaxed">{hint}</p>}
+    </div>
+  );
+}
+
+function Banner({ tone, children }: { tone: 'error' | 'success'; children: React.ReactNode }) {
+  const isError = tone === 'error';
+  const Icon = isError ? AlertCircle : CheckCircle2;
+  return (
+    <div
+      className={`mb-6 p-3 rounded-lg text-xs flex items-start gap-2 ${
+        isError
+          ? 'bg-[#ef4444]/10 shadow-[inset_0_0_0_1px_rgba(239,68,68,0.35)] text-[#fca5a5]'
+          : 'bg-[#22c55e]/10 shadow-[inset_0_0_0_1px_rgba(34,197,94,0.35)] text-[#86efac]'
+      }`}
+    >
+      <Icon className={`w-4 h-4 shrink-0 mt-px ${isError ? 'text-[#ef4444]' : 'text-[#22c55e]'}`} />
+      <span>{children}</span>
+    </div>
+  );
+}
 
 export default function SubmitPage() {
   const router = useRouter();
   const { user } = useAuth();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
+  const [listingType, setListingType] = useState<'free' | 'sale'>('free');
+  const [price, setPrice] = useState('20');
   const [title, setTitle] = useState('');
   const [githubUrl, setGithubUrl] = useState('');
   const [images, setImages] = useState<{ id: string; file: File; preview: string }[]>([]);
   const [reasonAbandoned, setReasonAbandoned] = useState('');
   const [salvageableCode, setSalvageableCode] = useState('');
   const [tagsInput, setTagsInput] = useState('');
+  const [agreeTerms, setAgreeTerms] = useState(false);
 
-  const [showPreview, setShowPreview] = useState(false);
+  const [archiveFile, setArchiveFile] = useState<File | null>(null);
+  const [fileTree, setFileTree] = useState<FileTreeItem[]>([]);
+  const [isValidatingZip, setIsValidatingZip] = useState(false);
+  const [zipValidationSuccess, setZipValidationSuccess] = useState<string | null>(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const zipInputRef = useRef<HTMLInputElement>(null);
+
+  const parsedTags = tagsInput
+    .split(',')
+    .map((t) => t.trim())
+    .filter((t) => t.length > 0);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const picked = Array.from(e.target.files ?? []);
@@ -91,8 +159,50 @@ export default function SubmitPage() {
     });
   };
 
+  const handleZipChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (zipInputRef.current) zipInputRef.current.value = '';
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      setError('Source code archive must be a .zip file.');
+      return;
+    }
+
+    if (file.size > 100 * 1024 * 1024) {
+      setError('Source code archive must be under 100MB.');
+      return;
+    }
+
+    setError(null);
+    setIsValidatingZip(true);
+    setZipValidationSuccess(null);
+
+    try {
+      const inspection = await inspectZipArchive(file);
+      setArchiveFile(file);
+      setFileTree(inspection.files);
+      setZipValidationSuccess(
+        `Archive verified: ${inspection.fileCount} source files (${formatBytes(inspection.totalSize)} uncompressed).`
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Invalid zip archive';
+      setError(`Archive validation failed: ${msg}`);
+      setArchiveFile(null);
+      setFileTree([]);
+    } finally {
+      setIsValidatingZip(false);
+    }
+  };
+
   const removeImage = (id: string) => {
     setImages((prev) => prev.filter((img) => img.id !== id));
+  };
+
+  const removeArchive = () => {
+    setArchiveFile(null);
+    setFileTree([]);
+    setZipValidationSuccess(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,13 +220,30 @@ export default function SubmitPage() {
     }
 
     if (images.length === 0) {
-      setError('Add at least one image of your project');
+      setError('Add at least one screenshot or image of your project');
       return;
     }
 
-    if (!githubUrl.trim().startsWith('http')) {
-      setError('Please provide a valid GitHub repository URL starting with https://');
-      return;
+    if (listingType === 'free') {
+      const cleaned = githubUrl.trim();
+      if (!cleaned || !/^https?:\/\/github\.com\/[\w.-]+\/[\w.-]+/i.test(cleaned)) {
+        setError('Free Salvage listings require a valid public GitHub URL (e.g. https://github.com/owner/repo)');
+        return;
+      }
+    } else {
+      const priceNum = parseFloat(price);
+      if (isNaN(priceNum) || priceNum < 1) {
+        setError('For Sale listings require a price of at least $1 USD');
+        return;
+      }
+      if (!archiveFile) {
+        setError('For Sale listings require uploading a verified .zip source code archive');
+        return;
+      }
+      if (fileTree.length < 3) {
+        setError('Uploaded archive contains fewer than 3 source files. Please upload a complete project.');
+        return;
+      }
     }
 
     if (!reasonAbandoned.trim()) {
@@ -129,21 +256,25 @@ export default function SubmitPage() {
       return;
     }
 
-    const tags = tagsInput
-      .split(',')
-      .map((t) => t.trim())
-      .filter((t) => t.length > 0);
+    if (!agreeTerms) {
+      setError('You must confirm code ownership and agree to the Terms of Service to proceed.');
+      return;
+    }
 
     setIsSubmitting(true);
 
     const res = await createProjectRecord(
       {
         title: title.trim(),
+        listing_type: listingType,
+        price: listingType === 'sale' ? parseFloat(price) : 0,
         github_url: githubUrl.trim(),
+        archive_file: archiveFile,
+        file_tree: fileTree,
         screenshots: images.map((img) => img.file),
         reason_abandoned: reasonAbandoned.trim(),
         salvageable_code: salvageableCode.trim(),
-        tags,
+        tags: parsedTags,
       },
       user
     );
@@ -163,13 +294,10 @@ export default function SubmitPage() {
   if (!user) {
     return (
       <div className={`${inter.className} min-h-screen bg-[#080808] text-[#fafafa] flex items-center justify-center px-4 py-16 antialiased`}>
-        <div className="w-full max-w-md bg-[#080808] rounded-xl p-8 text-center shadow-[inset_0_0_0_1px_#2a2a2a]">
-          <h1 className="text-2xl font-semibold tracking-[-0.025em] text-[#fafafa] mb-2">
-            Sign in to continue
-          </h1>
+        <div className="w-full max-w-md rounded-xl p-8 text-center shadow-[inset_0_0_0_1px_#2a2a2a]">
+          <h1 className="text-2xl font-semibold tracking-[-0.025em] mb-2">Sign in to continue</h1>
           <p className="text-sm text-[#8a8a8a] mb-6 leading-relaxed">
-            Only registered developers can deposit abandoned projects. Sign in or create an account to
-            proceed.
+            Only registered developers can deposit abandoned projects. Sign in or create an account to proceed.
           </p>
 
           <div className="space-y-4">
@@ -182,13 +310,7 @@ export default function SubmitPage() {
                 Sign in
               </Link>
             </p>
-            <Link
-              href="/"
-              className="group inline-flex items-center gap-1.5 text-sm text-[#8a8a8a] hover:text-[#fafafa] transition-colors"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
-              <span>Back to catalog</span>
-            </Link>
+            <BackLink />
           </div>
         </div>
 
@@ -201,61 +323,58 @@ export default function SubmitPage() {
     );
   }
 
+  const isSale = listingType === 'sale';
+
   return (
     <div className={`${inter.className} min-h-screen bg-[#080808] text-[#fafafa] pb-20 antialiased`}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-8 pb-6">
-        <div className="flex items-center justify-between mb-6">
-          <Link
-            href="/"
-            className="group inline-flex items-center gap-1.5 text-sm text-[#8a8a8a] hover:text-[#fafafa] transition-colors"
-          >
-            <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
-            <span>Back to catalog</span>
-          </Link>
-
-          <button
-            type="button"
-            onClick={() => setShowPreview(!showPreview)}
-            className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-transparent hover:bg-[#141414] text-[#fafafa] rounded-lg border border-[#2a2a2a] hover:border-[#3a3a3a] transition-colors ${focusRing}`}
-          >
-            {showPreview ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            <span>{showPreview ? 'Hide live preview' : 'Show live preview'}</span>
-          </button>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-6">
+        <div className="mb-6">
+          <BackLink />
         </div>
-
-        <h1 className="text-2xl sm:text-3xl font-semibold tracking-[-0.025em] text-[#fafafa]">
-          Dump an abandoned project
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-[-0.025em]">
+          Dump or sell an abandoned project
         </h1>
         <p className="text-sm text-[#8a8a8a] mt-2 max-w-xl">
-          Document what you built, why you walked away, and guide other developers to the code worth
-          reusing.
+          Document what you built, why you walked away, and give developers the code to salvage or buy.
         </p>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-4">
-        {error && (
-          <div className="mb-6 p-4 rounded-lg bg-[#ef4444]/10 shadow-[inset_0_0_0_1px_rgba(239,68,68,0.35)] text-[#fca5a5] text-xs flex items-start gap-2.5">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-px text-[#ef4444]" />
-            <span>{error}</span>
-          </div>
-        )}
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-4">
+        {error && <Banner tone="error">{error}</Banner>}
+        {success && <Banner tone="success">Project submitted successfully! Redirecting to the feed...</Banner>}
 
-        {success && (
-          <div className="mb-6 p-4 rounded-lg bg-[#22c55e]/10 shadow-[inset_0_0_0_1px_rgba(34,197,94,0.35)] text-[#86efac] text-xs flex items-start gap-2.5">
-            <CheckCircle2 className="w-4 h-4 shrink-0 mt-px text-[#22c55e]" />
-            <span>Project submitted! Redirecting to the feed...</span>
-          </div>
-        )}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+          <form onSubmit={handleSubmit} className="space-y-6 lg:col-span-7">
+            <Field label="Listing type">
+              <div className="grid grid-cols-2 gap-2">
+                {(
+                  [
+                    { value: 'free', title: 'Free Salvage', sub: 'Public GitHub URL' },
+                    { value: 'sale', title: 'For Sale', sub: 'Sell source archive' },
+                  ] as const
+                ).map((opt) => {
+                  const active = listingType === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => setListingType(opt.value)}
+                      aria-pressed={active}
+                      className={`py-3 px-4 rounded-lg text-sm transition-colors duration-150 flex flex-col items-center gap-0.5 ${focusRing} ${
+                        active
+                          ? 'bg-[#fafafa] text-[#080808]'
+                          : 'border border-[#2a2a2a] text-[#8a8a8a] hover:text-[#fafafa] hover:border-[#3a3a3a]'
+                      }`}
+                    >
+                      <span className="font-medium">{opt.title}</span>
+                      <span className="text-xs opacity-70">{opt.sub}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          <form
-            onSubmit={handleSubmit}
-            className={`space-y-6 ${showPreview ? 'lg:col-span-7' : 'lg:col-span-12 max-w-2xl'}`}
-          >
-            <div>
-              <label htmlFor="title" className={labelCls}>
-                <span>Project Title</span> <span className="text-[#ef4444]">*</span>
-              </label>
+            <Field label="Project title" htmlFor="title">
               <input
                 id="title"
                 type="text"
@@ -265,28 +384,110 @@ export default function SubmitPage() {
                 placeholder="e.g. GraphVector, SQLite Sync Engine, WebGL Shader Toy"
                 className={fieldCls}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label htmlFor="githubUrl" className={labelCls}>
-                <GitBranch className="w-3.5 h-3.5" />
-                <span>GitHub Repository URL</span> <span className="text-[#ef4444]">*</span>
-              </label>
+            {isSale && (
+              <>
+                <Field
+                  label="Price (USD)"
+                  htmlFor="price"
+                  hint="Platform takes a flat 10% cut. You receive 90% via Stripe Connect."
+                >
+                  <div className="relative">
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-[#8a8a8a]">$</span>
+                    <input
+                      id="price"
+                      type="number"
+                      min="1"
+                      step="1"
+                      required
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      placeholder="25"
+                      className={`${fieldCls} pl-7`}
+                    />
+                  </div>
+                </Field>
+
+                <Field label="Source code archive (.zip)">
+                  <input
+                    type="file"
+                    ref={zipInputRef}
+                    accept=".zip,application/zip"
+                    onChange={handleZipChange}
+                    className="hidden"
+                  />
+
+                  {!archiveFile ? (
+                    <button type="button" onClick={() => zipInputRef.current?.click()} className={dropCls}>
+                      {isValidatingZip ? (
+                        <span className="flex flex-col items-center gap-2 py-1">
+                          <Loader2 className="w-5 h-5 text-[#fafafa] animate-spin" />
+                          <span className="text-xs text-[#8a8a8a]">Inspecting archive contents...</span>
+                        </span>
+                      ) : (
+                        <span className="flex flex-col items-center gap-1">
+                          <FolderArchive className="w-5 h-5 text-[#8a8a8a] mb-1" />
+                          <span className="text-sm text-[#fafafa]">Upload .zip source archive</span>
+                          <span className="text-xs text-[#8a8a8a]">
+                            Minimum 3 source files and 5 KB of code. Max 100MB.
+                          </span>
+                        </span>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between gap-3 p-3 rounded-lg border border-[#2a2a2a]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <FolderArchive className="w-4 h-4 text-[#8a8a8a] shrink-0" />
+                          <span className="text-xs font-mono text-[#fafafa] truncate">{archiveFile.name}</span>
+                          <span className="text-xs text-[#8a8a8a] shrink-0">{formatBytes(archiveFile.size)}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removeArchive}
+                          className="text-xs text-[#8a8a8a] hover:text-[#ef4444] transition-colors shrink-0"
+                        >
+                          Remove
+                        </button>
+                      </div>
+
+                      {zipValidationSuccess && (
+                        <p className="text-xs text-[#22c55e] flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          <span>{zipValidationSuccess}</span>
+                        </p>
+                      )}
+
+                      {fileTree.length > 0 && <FileTreePreview files={fileTree} maxInitialDisplay={5} />}
+                    </div>
+                  )}
+                </Field>
+              </>
+            )}
+
+            <Field
+              label="GitHub repository URL"
+              htmlFor="githubUrl"
+              optional={isSale}
+              hint={isSale ? 'If provided, buyers get access to this repository URL after purchasing.' : undefined}
+            >
               <input
                 id="githubUrl"
                 type="url"
-                required
+                required={!isSale}
                 value={githubUrl}
                 onChange={(e) => setGithubUrl(e.target.value)}
-                placeholder="https://github.com/username/abandoned-repo"
+                placeholder={
+                  isSale
+                    ? 'https://github.com/username/private-repo (revealed only upon purchase)'
+                    : 'https://github.com/username/abandoned-repo'
+                }
                 className={`${fieldCls} font-mono text-xs`}
               />
-            </div>
+            </Field>
 
-            <div>
-              <span className={labelCls}>
-                <span>Project Images</span> <span className="text-[#ef4444]">*</span>
-              </span>
+            <Field label="Project screenshots">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -297,20 +498,15 @@ export default function SubmitPage() {
               />
 
               {images.length === 0 ? (
-                <div
-                  onClick={() => fileInputRef.current?.click()}
-                  className="border border-dashed border-[#2a2a2a] hover:border-[#3a3a3a] hover:bg-[#141414] rounded-lg p-6 text-center cursor-pointer transition-colors"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-[#141414] shadow-[inset_0_0_0_1px_#2a2a2a] text-[#8a8a8a] flex items-center justify-center mx-auto mb-3">
-                    <ImageIcon className="w-5 h-5" />
-                  </div>
-                  <span className="text-sm text-[#fafafa] block mb-1">
-                    Click to upload screenshots or UI previews
+                <button type="button" onClick={() => fileInputRef.current?.click()} className={dropCls}>
+                  <span className="flex flex-col items-center gap-1">
+                    <ImageIcon className="w-5 h-5 text-[#8a8a8a] mb-1" />
+                    <span className="text-sm text-[#fafafa]">Upload screenshots or UI previews</span>
+                    <span className="text-xs text-[#8a8a8a]">
+                      At least 1, up to {MAX_PROJECT_IMAGES}. PNG, JPG, WebP up to 5MB each.
+                    </span>
                   </span>
-                  <span className="text-xs text-[#8a8a8a] block">
-                    At least 1 required, up to {MAX_PROJECT_IMAGES}. PNG, JPG, WebP up to 5MB each
-                  </span>
-                </div>
+                </button>
               ) : (
                 <>
                   <div className="grid grid-cols-3 gap-3">
@@ -321,14 +517,14 @@ export default function SubmitPage() {
                       >
                         <img src={img.preview} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
                         {i === 0 && (
-                          <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 text-[10px] font-medium text-[#fafafa] bg-[#080808]/85 rounded-md border border-[#2a2a2a]">
+                          <span className="absolute bottom-1.5 left-1.5 px-1.5 py-0.5 text-[10px] font-medium text-[#fafafa] bg-[#080808]/85 rounded-md">
                             Cover
                           </span>
                         )}
                         <button
                           type="button"
                           onClick={() => removeImage(img.id)}
-                          className={`absolute top-1.5 right-1.5 p-1 bg-[#080808]/90 hover:bg-[#141414] text-[#b8b8b8] hover:text-[#fafafa] rounded-md border border-[#2a2a2a] transition-colors ${focusRing}`}
+                          className={`absolute top-1.5 right-1.5 p-1 bg-[#080808]/90 hover:bg-[#141414] text-[#b8b8b8] hover:text-[#fafafa] rounded-md transition-colors ${focusRing}`}
                           title="Remove image"
                           aria-label={`Remove image ${i + 1}`}
                         >
@@ -348,20 +544,14 @@ export default function SubmitPage() {
                       </button>
                     )}
                   </div>
-                  <p className="text-xs text-[#8a8a8a] mt-2">
-                    {images.length} of {MAX_PROJECT_IMAGES} images. The first one is the cover shown on the
-                    catalog. Extra images only appear when someone opens the project.
+                  <p className="text-xs text-[#737373]">
+                    {images.length} of {MAX_PROJECT_IMAGES}. The first image is the cover shown in the catalog.
                   </p>
                 </>
               )}
-            </div>
+            </Field>
 
-            <div>
-              <label htmlFor="reason" className={labelCls}>
-                <Skull className="w-3.5 h-3.5" />
-                <span>Why Did You Abandon It? (Cause of Death)</span>{' '}
-                <span className="text-[#ef4444]">*</span>
-              </label>
+            <Field label="Why did you abandon it?" htmlFor="reason">
               <textarea
                 id="reason"
                 required
@@ -371,14 +561,9 @@ export default function SubmitPage() {
                 placeholder="Be brutally honest: Did competitors ship first? Did AWS bills explode? Did Chrome MV3 break your background workers? Real postmortems help everyone."
                 className={`${fieldCls} leading-relaxed`}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label htmlFor="salvage" className={labelCls}>
-                <Code2 className="w-3.5 h-3.5" />
-                <span>What Code/File Is Worth Salvaging?</span>{' '}
-                <span className="text-[#ef4444]">*</span>
-              </label>
+            <Field label="What is worth salvaging?" htmlFor="salvage">
               <textarea
                 id="salvage"
                 required
@@ -388,10 +573,9 @@ export default function SubmitPage() {
                 placeholder="Give exact file paths and functions. e.g. 'crates/simd/distance.rs has a standalone zero-allocation cosine distance routine that compiles without external dependencies.'"
                 className={`${fieldCls} leading-relaxed font-mono text-xs`}
               />
-            </div>
+            </Field>
 
-            <div>
-              <label htmlFor="tags" className={labelCls}>Tags (Comma-separated)</label>
+            <Field label="Tags" htmlFor="tags" optional hint="Separate with commas.">
               <input
                 id="tags"
                 type="text"
@@ -400,50 +584,64 @@ export default function SubmitPage() {
                 placeholder="TypeScript, SQLite, WebGL, Algorithms, Parser"
                 className={`${fieldCls} font-mono text-xs`}
               />
-            </div>
+            </Field>
 
-            <div className="pt-2">
-              <button type="submit" disabled={isSubmitting || success} className={primaryBtn}>
-                {isSubmitting ? (
-                  <span className="inline-block w-4 h-4 border-2 border-[#080808] border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Upload className="w-4 h-4" />
-                    <span>Publish Project</span>
-                  </>
-                )}
-              </button>
-            </div>
+            <label className="flex items-start gap-3 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                required
+                checked={agreeTerms}
+                onChange={(e) => setAgreeTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded border-[#3a3a3a] bg-[#141414] accent-[#fafafa] focus:ring-0"
+              />
+              <span className="text-xs text-[#8a8a8a] leading-relaxed">
+                I confirm I own the copyright and rights to this source code, wrote or legitimately acquired it,
+                and agree to the{' '}
+                <Link href="/terms" target="_blank" className="text-[#fafafa] underline underline-offset-2">
+                  Terms of Service
+                </Link>{' '}
+                and{' '}
+                <Link href="/refunds" target="_blank" className="text-[#fafafa] underline underline-offset-2">
+                  Refund Policy
+                </Link>
+                .
+              </span>
+            </label>
+
+            <button
+              type="submit"
+              disabled={isSubmitting || isValidatingZip || success}
+              className={primaryBtn}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Publishing project...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="w-4 h-4" />
+                  <span>{isSale ? `Publish listing for $${price || '0'}` : 'Publish free salvage project'}</span>
+                </>
+              )}
+            </button>
           </form>
 
-          {showPreview && (
-            <div className="lg:col-span-5 sticky top-24 self-start">
-              <div className="rounded-xl p-4 shadow-[inset_0_0_0_1px_#2a2a2a]">
-                <span className="block text-[11px] font-medium text-[#8a8a8a] uppercase tracking-[0.05em] mb-3">
-                  Live Card Preview
-                </span>
-                <div className="rounded-lg overflow-hidden shadow-[inset_0_0_0_1px_#2a2a2a]">
-                  <div className="aspect-video bg-[#141414] relative">
-                    {images[0] ? (
-                      <img src={images[0].preview} alt="Preview" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[#5c5c5c] text-xs">
-                        No screenshot
-                      </div>
-                    )}
-                  </div>
-                  <div className="p-4 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-[#8a8a8a]">{user.username}</span>
-                    </div>
-                    <h3 className="font-semibold text-[#fafafa] text-sm tracking-[-0.01em]">
-                      {title || 'Untitled Project'}
-                    </h3>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+          <div className="lg:col-span-5 lg:sticky lg:top-24 self-start">
+            <ProjectPreview
+              title={title}
+              tags={parsedTags}
+              images={images.map((img) => img.preview)}
+              username={user.username}
+              avatarUrl={getAvatarUrl(user) || undefined}
+              githubUrl={githubUrl}
+              reasonAbandoned={reasonAbandoned}
+              salvageableCode={salvageableCode}
+              isForSale={isSale}
+              price={isSale ? parseFloat(price) || 0 : 0}
+              filesCount={fileTree.length}
+            />
+          </div>
         </div>
       </div>
     </div>
